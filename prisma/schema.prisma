@@ -1,0 +1,196 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "mysql"
+  url      = env("DATABASE_URL")
+}
+
+model pages {
+  id         BigInt    @id @default(autoincrement()) @db.UnsignedBigInt
+  title      String    @db.VarChar(255)
+  slug       String    @db.VarChar(255)
+  content    String?   @db.LongText
+  status     Boolean   @default(false)
+  created_at DateTime? @db.Timestamp(0)
+  updated_at DateTime? @db.Timestamp(0)
+}
+
+model users {
+  id                BigInt          @id @default(autoincrement()) @db.UnsignedBigInt
+  email             String          @unique(map: "users_email_unique") @db.VarChar(255)
+  email_verified_at DateTime?       @db.Timestamp(0)
+  password          String          @db.VarChar(255)
+  api_token         String?         @unique(map: "users_api_token_unique") @db.VarChar(80)
+  remember_token    String?         @db.VarChar(100)
+  created_at        DateTime?       @db.Timestamp(0)
+  updated_at        DateTime?       @db.Timestamp(0)
+  username          String          @db.VarChar(255)
+  avatar            String?         @db.VarChar(255)
+  addressLine1      String?         @db.VarChar(255)
+  city              String?         @db.VarChar(255)
+  country           String?         @db.VarChar(255)
+  postcode          String?         @db.VarChar(255)
+  api_key           String?         @db.VarChar(255)
+  role              Int             @default(0)
+  is_active         Boolean         @default(false)
+  access_tokens     access_tokens[]
+  chats             chats[]
+  invoices          invoices[]
+  subscriptions     subscriptions[]
+}
+
+model tasks {
+  id          BigInt    @id @default(autoincrement()) @db.UnsignedBigInt
+  chat_id     BigInt    @db.UnsignedBigInt
+  description String    @db.VarChar(255)
+  status      String    @default("to be done") @db.VarChar(255)
+  created_at  DateTime  @default(now()) @db.Timestamp(0)
+  updated_at  DateTime? @db.Timestamp(0)
+  chat        chats     @relation(fields: [chat_id], references: [id], onUpdate: Restrict)
+
+  @@index([chat_id], map: "tasks_chat_id_index")
+}
+
+model chats {
+  id              BigInt    @id @default(autoincrement()) @db.UnsignedBigInt
+  user_id         BigInt    @db.UnsignedBigInt
+  title           String    @db.VarChar(255)
+  path            String?   @db.VarChar(255)
+  uuid            String?   @unique(map: "chats_uuid_unique") @db.VarChar(255)
+  created_at      DateTime? @db.Timestamp(0)
+  updated_at      DateTime? @db.Timestamp(0)
+  chat_history    String?   @db.LongText
+  assistant_id    String?   @db.VarChar(255)
+  thread_id       String?   @db.VarChar(255)
+  vector_store_id String?   @db.VarChar(255)
+  tasks           tasks[]
+  users           users     @relation(fields: [user_id], references: [id], onUpdate: Restrict, map: "chats_user_id_foreign")
+
+  @@index([uuid], map: "chats_uuid_index")
+  @@index([user_id], map: "pdfs_user_id_foreign")
+}
+
+model failed_jobs {
+  id         BigInt   @id @default(autoincrement()) @db.UnsignedBigInt
+  uuid       String   @unique(map: "failed_jobs_uuid_unique") @db.VarChar(255)
+  connection String   @db.Text
+  queue      String   @db.Text
+  payload    String   @db.LongText
+  exception  String   @db.LongText
+  failed_at  DateTime @default(now()) @db.Timestamp(0)
+}
+
+model migrations {
+  id        Int    @id @default(autoincrement()) @db.UnsignedInt
+  migration String @db.VarChar(255)
+  batch     Int
+}
+
+model access_tokens {
+  id           BigInt    @id @default(autoincrement()) @db.UnsignedBigInt
+  user_id      BigInt    @db.UnsignedBigInt
+  token        String    @unique(map: "access_tokens_token_unique") @db.VarChar(64)
+  last_used_at DateTime? @db.Timestamp(0)
+  expires_at   DateTime? @db.Timestamp(0)
+  created_at   DateTime? @db.Timestamp(0)
+  updated_at   DateTime? @db.Timestamp(0)
+  users        users     @relation(fields: [user_id], references: [id], onUpdate: Restrict, map: "access_tokens_user_id_foreign")
+
+  @@index([user_id], map: "access_tokens_user_id_foreign")
+}
+
+model invoices {
+  id                      BigInt    @id @default(autoincrement()) @db.UnsignedBigInt
+  user_id                 BigInt    @db.UnsignedBigInt
+  plan_id                 BigInt    @db.UnsignedBigInt
+  invoice_id              String    @unique(map: "invoices_invoice_id_unique") @db.VarChar(10)
+  status                  Int       @default(0)
+  paid_at                 DateTime? @db.Timestamp(0)
+  payment_gateway         String?   @default("") @db.VarChar(255)
+  gateway_plan_id         String?   @default("") @db.VarChar(255)
+  gateway_subscription_id String?   @default("") @db.VarChar(255)
+  created_at              DateTime? @db.Timestamp(0)
+  updated_at              DateTime? @db.Timestamp(0)
+  amount                  Float     @default(0.00)
+  plans                   plans     @relation(fields: [plan_id], references: [id], onUpdate: Restrict, map: "invoices_plan_id_foreign")
+  users                   users     @relation(fields: [user_id], references: [id], onUpdate: Restrict, map: "invoices_user_id_foreign")
+  currency                String?   @default("") @db.VarChar(255)
+  @@index([plan_id], map: "invoices_plan_id_foreign")
+  @@index([user_id], map: "invoices_user_id_foreign")
+}
+
+model password_reset_tokens {
+  email      String    @id @db.VarChar(255)
+  token      String    @db.VarChar(255)
+  created_at DateTime? @db.Timestamp(0)
+}
+
+model personal_access_tokens {
+  id             BigInt    @id @default(autoincrement()) @db.UnsignedBigInt
+  tokenable_type String    @db.VarChar(255)
+  tokenable_id   BigInt    @db.UnsignedBigInt
+  name           String    @db.VarChar(255)
+  token          String    @unique(map: "personal_access_tokens_token_unique") @db.VarChar(64)
+  abilities      String?   @db.Text
+  last_used_at   DateTime? @db.Timestamp(0)
+  expires_at     DateTime? @db.Timestamp(0)
+  created_at     DateTime? @db.Timestamp(0)
+  updated_at     DateTime? @db.Timestamp(0)
+
+  @@index([tokenable_type, tokenable_id], map: "personal_access_tokens_tokenable_type_tokenable_id_index")
+}
+
+model plans {
+  id             BigInt          @id @default(autoincrement()) @db.UnsignedBigInt
+  name           String          @db.VarChar(255)
+  description    String?         @db.VarChar(255)
+  price          Float           @default(0.00)
+  features       String?         @db.Text
+  status         Boolean         @default(false)
+  is_free        Boolean         @default(false)
+  is_popular     Boolean         @default(false)
+  billing_cycle  String          @default("monthly") @db.VarChar(255)
+  pdfs           Int             @default(0)
+  questions      Int             @default(0)
+  pdf_size       Float           @default(0.00)
+  pdf_pages      Int             @default(0)
+  paypal_plan_id String?         @default("") @db.VarChar(255)
+  stripe_plan_id String?         @default("") @db.VarChar(255)
+  soft_delete    Boolean         @default(false)
+  created_at     DateTime?       @db.Timestamp(0)
+  updated_at     DateTime?       @db.Timestamp(0)
+  invoices       invoices[]
+  subscriptions  subscriptions[]
+}
+
+model settings {
+  id    BigInt  @id @default(autoincrement()) @db.UnsignedBigInt
+  name  String  @db.VarChar(255)
+  value String? @default("") @db.Text
+  type  String  @default("string") @db.VarChar(255)
+}
+
+model subscriptions {
+  id                      BigInt    @id @default(autoincrement()) @db.UnsignedBigInt
+  sub_id                  String    @unique(map: "subscriptions_sub_id_unique") @db.VarChar(10)
+  user_id                 BigInt    @db.UnsignedBigInt
+  plan_id                 BigInt    @db.UnsignedBigInt
+  status                  Int       @default(0)
+  expiring_at             DateTime? @db.Timestamp(0)
+  payment_gateway         String?   @default("") @db.VarChar(255)
+  gateway_plan_id         String?   @default("") @db.VarChar(255)
+  gateway_subscription_id String?   @default("") @db.VarChar(255)
+  pdfs                    Int       @default(0)
+  questions               Int       @default(0)
+  pdf_size                Int       @default(0)
+  pdf_pages               Int       @default(0)
+  created_at              DateTime? @db.Timestamp(0)
+  updated_at              DateTime? @db.Timestamp(0)
+  plans                   plans     @relation(fields: [plan_id], references: [id], onUpdate: Restrict, map: "subscriptions_plan_id_foreign")
+  users                   users     @relation(fields: [user_id], references: [id], onUpdate: Restrict, map: "subscriptions_user_id_foreign")
+  currency                String?   @default("") @db.VarChar(255)
+  @@index([plan_id], map: "subscriptions_plan_id_foreign")
+  @@index([user_id], map: "subscriptions_user_id_foreign")
+}
