@@ -4,8 +4,8 @@ import CryptoJS from 'crypto-js';
 import { PrismaClient, users as User, plans as Plan, subscriptions as Subscription } from '@prisma/client';
 
 const prisma = new PrismaClient();
-const CHECKOUT_URL = 'https://payform.pay-digi.io';
-const MERCHANT_KEY = 'ed4bdcfa-18d1-11ef-9fa7-de0391904501';
+const CHECKOUT_URL = 'https://engine.g2pay.io';
+const MERCHANT_KEY = 'HS8x02pks0MeagDy1834nJmqq0oj1g3v';
 const PASSWORD = 'fde14c51b41450474901efe6ebe3799c';
 
 interface CheckoutRequestBody {
@@ -32,28 +32,14 @@ interface UserAddress {
 }
 
 interface CheckoutRequestData {
-  merchant_key: string;
-  operation: string;
-  order: {
-    number: string;
-    amount: string;
-    currency: string;
-    description: string;
-  };
-  methods: string[];
-  success_url: string;
-  cancel_url: string;
+  referenceId: string;
+  paymentType: string;
   currency: string;
-  hash: string;
-  customer: {
-    email: string;
-    billing_address: {
-      country: string;
-      city: string;
-      address: string;
-      zip: string;
-    };
-  };
+  amount: string;
+  returnUrl: string;
+  successReturnUrl: string;
+  declineReturnUrl: string;
+  webhookUrl: string;
 }
 
 const SUPPORTED_CURRENCIES = [
@@ -219,36 +205,24 @@ export async function POST(req: NextRequest): Promise<NextResponse> {
     const hash = generateHash(orderNumber, amount, currency, description);
 
     const checkoutRequestData: CheckoutRequestData = {
-      merchant_key: MERCHANT_KEY,
-      operation: 'purchase',
-      order: {
-        number: orderNumber,
-        amount,
-        currency,
-        description
-      },
-      currency,
-      methods: ['card'],
-      success_url: `https://file-energy-api.vercel.app/api/update-order?subscriptionId=${newSubscription.id}&isFile=${isFile}&currency=${currency}`,
-      cancel_url: `https://file.energy/account/settings/subscription`,
-      hash,
-      customer: {
-        email: userEmail,
-        billing_address: {
-          country: userAddress.country,
-          city: userAddress.city,
-          address: userAddress.addressLine1,
-          zip: userAddress.postcode
-        }
-      }
+      referenceId: orderNumber,
+      paymentType: 'DEPOSIT',
+      currency: currency,
+      amount: amount,
+      returnUrl: `https://file.energy/account/settings/subscription`,
+      successReturnUrl: `https://file-energy-api.vercel.app/api/update-order?subscriptionId=${newSubscription.id}&isFile=${isFile}&currency=${currency}`,
+      declineReturnUrl: `https://file.energy/account/settings/subscription`,
+      webhookUrl: 'https://file.energy/',
+
     };
 
     console.log('Checkout request data:', checkoutRequestData);
 
-    const response = await fetch(`${CHECKOUT_URL}/api/v1/session`, {
+    const response = await fetch(`${CHECKOUT_URL}/api/v1/payments`, {
       method: 'POST',
       headers: {
-        'Content-Type': 'application/json'
+        'Content-Type': 'application/json',
+        'Authorization': 'Bearer HS8x02pks0MeagDy1834nJmqq0oj1g3v'
       },
       body: JSON.stringify(checkoutRequestData)
     });
@@ -261,7 +235,7 @@ export async function POST(req: NextRequest): Promise<NextResponse> {
     }
 
     return new NextResponse(
-      JSON.stringify({ url: checkoutData.redirect_url }),
+      JSON.stringify({ url: checkoutData.result.redirectUrl }),
       {
         status: 200,
         headers: {
