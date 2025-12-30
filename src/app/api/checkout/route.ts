@@ -222,7 +222,7 @@ export async function POST(req: NextRequest): Promise<NextResponse> {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
-        'Authorization': 'Bearer HS8x02pks0MeagDy1834nJmqq0oj1g3v'
+        'Authorization': 'Bearer OEQwn39E2AcnQJmjQMwYvjOTrS3glzGe'
       },
       body: JSON.stringify(checkoutRequestData)
     });
